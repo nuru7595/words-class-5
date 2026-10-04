@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Checker</title>
+<style>
+  :root{--bg:#f6f7fb;--card:#fff;--tx:#1d2330;--mut:#6b7280;--ok:#16a34a;--no:#dc2626;--ac:#4f46e5;--bd:#e5e7eb}
+  @media (prefers-color-scheme:dark){:root{--bg:#10131a;--card:#1a1f2b;--tx:#e8ebf2;--mut:#9aa3b2;--bd:#2a3140}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Noto Sans Bengali",sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  h1{font-size:1.2rem;margin:4px 0 12px}
+  .sbox{position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
+  input{width:100%;padding:14px 16px;font-size:1.1rem;border:2px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);outline:none}
+  input:focus{border-color:var(--ac)}
+  .status{margin-top:10px;padding:10px 14px;border-radius:10px;font-weight:600;font-size:.95rem}
+  .st-ok{background:#16a34a22;color:var(--ok)}
+  .st-no{background:#dc262622;color:var(--no)}
+  .st-sim{background:#d9770622;color:#d97706}
+  .st-idle{background:var(--card);color:var(--mut);font-weight:400}
+  .item{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .item .w{font-weight:600}
+  .pr{color:var(--mut);font-size:.85rem}
+  .item .m{color:var(--mut);text-align:right}
+  .item.exact{border-color:var(--ok);border-width:2px}
+  .tag{font-size:.7rem;padding:2px 7px;border-radius:99px;margin-left:8px;background:var(--bd);color:var(--mut);font-weight:500}
+  mark{background:#fde04777;color:inherit;border-radius:3px}
+  .add{margin-top:12px;display:none;gap:8px}
+  .add input{font-size:1rem;padding:10px 12px}
+  button{padding:10px 16px;border:0;border-radius:10px;background:var(--ac);color:#fff;font-size:.95rem;cursor:pointer}
+  .foot{margin-top:18px;color:var(--mut);font-size:.8rem;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📚 English Words – Class 5 <span id="count" style="color:var(--mut);font-weight:400;font-size:.85rem"></span></h1>
+  <div class="sbox">
+    <input id="q" type="search" placeholder="Word type করো (English বা বাংলা)..." autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
+    <div id="status" class="status" style="display:none"></div>
+  </div>
+  <div id="add" class="add">
+    <input id="newMeaning" placeholder="বাংলা মানে (optional)">
+    <button id="addBtn">Add</button>
+  </div>
+  <div id="results"></div>
+</div>
+
+<script>
+const BASE = `Public library|সাধারণ পাঠাগার|1|পাবলিক লাইব্রেরি
+seen|দেখেছে|1|সিন
+new girl|নতুন মেয়ে|1|নিউ গার্ল
+Looking for|খোঁজা|1|লুকিং ফর
+conversation|কথোপকথন|1|কনভারসেশন
+book shelves|বইয়ের তাক|1|বুক শেলভস
+Introduced|পরিচিত হওয়া|1|ইনট্রোডিউসড
+way back|ফেরার পথ|1|ওয়ে ব্যাক
+Just|শুধু|1|জাস্ট
+move|নড়াচড়া করা|1|মুভ
+Seem|মনে হওয়া|1|সিম
+kind|দয়া/প্রকার|1|কাইন্ড
+Story|গল্প|1|স্টোরি
+Enjoy|উপভোগ করা|1|এনজয়
+famous|বিখ্যাত|1|ফেমাস
+People|মানুষ|1|পিপল
+Together|একসাথে|1|টুগেদার
+clean|পরিষ্কার|1|ক্লিন
+Tool|যন্ত্রপাতি|1|টুল
+Water|পানি|1|ওয়াটার
+Plants|উদ্ভিদ|1|প্লান্টস
+Remove|সরানো|1|রিমুভ
+Sound|শব্দ|1|সাউন্ড
+Share|ভাগাভাগি|1|শেয়ার
+Choice|পছন্দ|1|চয়েস
+Find|খোঁজা|1|ফাইন্ড
+Very|খুব|1|ভেরি
+Interesting|মজাদার|1|ইন্টারেস্টিং
+Also|আরো/এছাড়াও|1|অলসো
+Meet|দেখা করা|1|মিট
+Wait|অপেক্ষা করা|1|ওয়েট
+Tomorrow|আগামীকাল|1|টুমরো
+Hope|আশা করা|1|হোপ
+Hopefully|আশা করা যায়|1|হোপফুলি
+There|সেখানে|1|দেয়ার
+Here|এখানে|1|হিয়ার
+great|মহৎ|1|গ্রেট
+Question|প্রশ্ন|1|কোয়েশ্চন
+where|কোথায়|1|হোয়ার
+Word|শব্দ|1|ওয়ার্ড
+Yesterday|গতকাল|2|ইয়েস্টারডে
+Only|শুধুমাত্র|2|ওনলি
+Submit|জমা দেওয়া|2|সাবমিট
+Out|বাইরে|2|আউট
+Fuel|জ্বালানি|2|ফুয়েল
+Again|আবার|2|অ্যাগেইন
+Indicate|নির্দেশ করা|2|ইন্ডিকেট
+Specific|নির্দিষ্ট|2|স্পেসিফিক
+Wild|বন্য|2|ওয়াইল্ড
+Ship|জাহাজ|2|শিপ
+Thing|জিনিস|2|থিং
+Shoe|জুতা|2|শু
+Blank|খালি|2|ব্ল্যাংক
+Common|সাধারণ|2|কমন
+Yard|বাগান|2|ইয়ার্ড
+Below|নিচে|2|বিলো
+visit|পরিদর্শন করা|2|ভিজিট
+Bought|কিনেছিল|2|বট
+Chase|ধাওয়া করা|2|চেজ
+Jumble|মিশানো|2|জাম্বল
+Correct|সঠিক|2|কারেক্ট
+Collective|সমষ্টিগত|2|কালেক্টিভ
+Museum|জাদুঘর|2|মিউজিয়াম
+Brought|নিয়ে এসেছিল|2|ব্রট
+Rearrange|পুনর্বিন্যাস করা|2|রিঅ্যারেঞ্জ
+Rain|বৃষ্টি|2|রেইন
+Meaningful|অর্থপূর্ণ|2|মিনিংফুল
+Outside|বাইরে|2|আউটসাইড
+Watch|দেখা|2|ওয়াচ
+Dinner|রাতের খাবার|2|ডিনার
+Always|সবসময়|2|অলওয়েজ
+Excited|উত্তেজিত|2|এক্সাইটেড
+Exercise|ব্যায়াম|2|এক্সারসাইজ
+Mountain|পাহাড়|2|মাউন্টেন
+Imagine|কল্পনা করা|2|ইমাজিন
+Describing|বর্ণনা করা|2|ডিসক্রাইবিং
+green|সবুজ|2|গ্রিন
+grazing|ঘাস খাওয়া|2|গ্রেজিং
+why|কেন|3|হোয়াই
+Who|কে|3|হু
+They|তারা|3|দে
+Use|ব্যবহার|3|ইউজ
+Now|এখন|3|নাউ
+when|কখন|3|হোয়েন
+Some|কিছু|3|সাম
+Little|ছোট|3|লিটল
+Every|প্রতি|3|এভরি
+Each|প্রত্যেক|3|ইচ
+Ready|প্রস্তুত|3|রেডি
+Test|পরীক্ষা|3|টেস্ট
+Study|পড়া|3|স্টাডি
+Clap|তালি|3|ক্ল্যাপ
+Lovely|সুন্দর|3|লাভলি
+Garden|বাগান|3|গার্ডেন
+Front|আঙিনা|3|ফ্রন্ট
+Play|খেলা|3|প্লে
+ground|ভূমি|3|গ্রাউন্ড
+Fence|ঘেরা/বেড়া|3|ফেন্স
+Enclose|আবদ্ধ|3|ইনক্লোজ
+Many|অনেক|3|ম্যানি
+Beautiful|সুন্দর|3|বিউটিফুল
+add|যুক্ত করা|3|অ্যাড
+Compost|জৈব সার|3|কম্পোস্ট
+Corner|কোনা|3|কর্নার
+Ditch|নালা|3|ডিচ
+Dance|নাচ|3|ড্যান্স
+Flock|ঝাঁক|3|ফ্লক
+Swarm|ঝাঁক|3|স্বর্ম
+Flower|ফুল|3|ফ্লাওয়ার
+Butterflies|প্রজাপতি|3|বাটারফ্লাইজ
+Group|দল|3|গ্রুপ
+Frog|ব্যাঙ|3|ফ্রগ
+Live|বাস করা|3|লিভ
+Sweet|মিষ্টি|3|সুইট
+Nearby|নিকটবর্তী|3|নিয়ারবাই
+Sometimes|মাঝে মাঝে|3|সামটাইমস
+Take|নেওয়া|3|টেক
+care|যত্ন|3|কেয়ার
+Select|বাছাই করা|3|সিলেক্ট
+Regular|নিয়মিত|3|রেগুলার
+weed|আগাছা|3|উইড
+Soil|মাটি|3|সয়েল
+Given|দেওয়া আছে|3|গিভেন
+Fertile|উর্বর|3|ফার্টাইল
+Type|প্রকার|3|টাইপ
+Category|বিভাগ|3|ক্যাটাগরি
+done|শেষ|3|ডান
+Example|উদাহরণ|3|ইগজ্যাম্পল
+Text|লেখা|3|টেক্সট
+Match|মেলানো|3|ম্যাচ
+With|সাথে|3|উইথ
+General|সাধারণ|3|জেনারেল
+Object|বস্তু|3|অবজেক্ট
+Refer|উল্লেখ করা|3|রেফার
+Place|জায়গা|3|প্লেস
+Item|জিনিস|3|আইটেম`;
+
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+let words = BASE.split("\n").map(l=>{const [w,m,p,u]=l.split("|");return {w:cap(w),m,p:"Page "+p,u}});
+try{ const extra = JSON.parse(localStorage.getItem("extraWords")||"[]").map(x=>({...x,w:cap(x.w)})); words = words.concat(extra); }catch(e){}
+
+const $ = id => document.getElementById(id);
+const norm = s => s.toLowerCase().trim().replace(/\s+/g," ");
+const esc = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function lev(a,b){
+  if(Math.abs(a.length-b.length)>2) return 9;
+  const d=[...Array(b.length+1).keys()];
+  for(let i=1;i<=a.length;i++){
+    let prev=d[0]; d[0]=i;
+    for(let j=1;j<=b.length;j++){
+      const t=d[j];
+      d[j]=Math.min(d[j]+1,d[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));
+      prev=t;
+    }
+  }
+  return d[b.length];
+}
+
+function hl(text,q){
+  const i=norm(text).indexOf(q);
+  if(i<0||!q) return esc(text);
+  return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
+}
+
+function search(){
+  const raw=$("q").value, q=norm(raw);
+  const res=$("results"), st=$("status"), add=$("add");
+  add.style.display="none";
+  if(!q){
+    st.style.display="none";
+    res.innerHTML=words.map(x=>
+      `<div class="item"><div><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+    ).join("");
+    return;
+  }
+  st.style.display="";
+
+  const scored=[];
+  words.forEach(x=>{
+    const w=norm(x.w), m=x.m||"";
+    let s=0,tag="";
+    if(w===q){s=100;tag="exact"}
+    else if(m.split(/[\/,]/).some(p=>p.trim()===raw.trim())){s=90;tag="meaning"}
+    else if(w.startsWith(q)){s=80;tag="starts with"}
+    else if(w.includes(q)){s=60;tag="contains"}
+    else if(m.includes(raw.trim())){s=55;tag="meaning"}
+    else if(q.length>=3 && w.length>=3){
+      const d=lev(q,w), lim=q.length>=6?2:1;
+      if(d<=lim){s=40-d*5;tag="similar"}
+      else if(q.length>=4 && w.length>=4 && (w.startsWith(q.slice(0,-1))||q.startsWith(w.slice(0,-1)))){s=30;tag="similar"}
+    }
+    if(s) scored.push({...x,s,tag});
+  });
+  scored.sort((a,b)=>b.s-a.s||a.w.localeCompare(b.w));
+
+  const exact=scored.find(x=>x.tag==="exact");
+  if(exact){
+    st.className="status st-ok";
+    st.textContent="✅ Already added আছে ("+exact.p+")";
+  } else if(scored.length){
+    st.className="status st-sim";
+    st.textContent="⚠️ Exact নেই, কিন্তু "+scored.length+"টা similar পাওয়া গেছে";
+  } else {
+    st.className="status st-no";
+    st.textContent="❌ নেই — নতুন add করতে পারো";
+  }
+  if(!exact && /^[a-z' -]+$/i.test(raw.trim())) add.style.display="flex";
+
+  res.innerHTML=scored.slice(0,40).map(x=>
+    `<div class="item ${x.tag==="exact"?"exact":""}"><div><span class="w">${hl(x.w,q)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}<span class="tag">${x.tag}</span></div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+  ).join("");
+}
+
+$("addBtn").onclick=()=>{
+  const w=$("q").value.trim(); if(!w) return;
+  const item={w:cap(w),m:$("newMeaning").value.trim(),p:"New"};
+  words.push(item);
+  try{
+    const extra=JSON.parse(localStorage.getItem("extraWords")||"[]"); extra.push(item);
+    localStorage.setItem("extraWords",JSON.stringify(extra));
+  }catch(e){}
+  $("newMeaning").value=""; $("count").textContent="("+words.length+" words)"; search();
+};
+
+$("q").addEventListener("input",search);
+$("count").textContent="("+words.length+" words)";
+search();
+</script>
+</body>
+</html>
