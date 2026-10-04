@@ -21,6 +21,7 @@
   .st-idle{background:var(--card);color:var(--mut);font-weight:400}
   .item{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-top:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}
   .item .w{font-weight:600}
+  .sn{display:inline-block;min-width:2.2em;color:var(--mut);font-size:.8rem}
   .pr{color:var(--mut);font-size:.85rem}
   .item .m{color:var(--mut);text-align:right}
   .item.exact{border-color:var(--ok);border-width:2px}
@@ -30,6 +31,17 @@
   .add input{font-size:1rem;padding:10px 12px}
   button{padding:10px 16px;border:0;border-radius:10px;background:var(--ac);color:#fff;font-size:.95rem;cursor:pointer}
   .foot{margin-top:18px;color:var(--mut);font-size:.8rem;text-align:center}
+  .item>div:first-child{min-width:0;overflow-wrap:anywhere}
+  .item .m{flex-shrink:0;max-width:45%}
+  .add input{flex:1;min-width:0}
+  .wrap{padding-bottom:40px}
+  @media (max-width:420px){
+    .wrap{padding:12px}
+    h1{font-size:1.05rem}
+    .item{padding:9px 10px;gap:8px}
+    .tag{display:block;margin:3px 0 0;width:fit-content}
+    .item .m{font-size:.9rem}
+  }
 </style>
 </head>
 <body>
@@ -187,6 +199,7 @@ Item|জিনিস|3|আইটেম`;
 const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
 let words = BASE.split("\n").map(l=>{const [w,m,p,u]=l.split("|");return {w:cap(w),m,p:"Page "+p,u}});
 try{ const extra = JSON.parse(localStorage.getItem("extraWords")||"[]").map(x=>({...x,w:cap(x.w)})); words = words.concat(extra); }catch(e){}
+words.forEach((x,i)=>x.n=i+1);
 
 const $ = id => document.getElementById(id);
 const norm = s => s.toLowerCase().trim().replace(/\s+/g," ");
@@ -219,7 +232,7 @@ function search(){
   if(!q){
     st.style.display="none";
     res.innerHTML=words.map(x=>
-      `<div class="item"><div><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+      `<div class="item"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
     return;
   }
@@ -257,13 +270,14 @@ function search(){
   if(!exact && /^[a-z' -]+$/i.test(raw.trim())) add.style.display="flex";
 
   res.innerHTML=scored.slice(0,40).map(x=>
-    `<div class="item ${x.tag==="exact"?"exact":""}"><div><span class="w">${hl(x.w,q)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}<span class="tag">${x.tag}</span></div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+    `<div class="item ${x.tag==="exact"?"exact":""}"><div><span class="sn">${x.n}.</span><span class="w">${hl(x.w,q)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}<span class="tag">${x.tag}</span></div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
   ).join("");
 }
 
 $("addBtn").onclick=()=>{
   const w=$("q").value.trim(); if(!w) return;
   const item={w:cap(w),m:$("newMeaning").value.trim(),p:"New"};
+  item.n=words.length+1;
   words.push(item);
   try{
     const extra=JSON.parse(localStorage.getItem("extraWords")||"[]"); extra.push(item);
