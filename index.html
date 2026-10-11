@@ -42,6 +42,10 @@
     .tag{display:block;margin:3px 0 0;width:fit-content}
     .item .m{font-size:.9rem}
   }
+  .pager{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px}
+  .pgbtn{width:56px;height:44px;font-size:1.6rem;line-height:1;padding:0}
+  .pgbtn:disabled{opacity:.35;cursor:default}
+  .pgnum{font-weight:600;font-size:1rem}
 </style>
 </head>
 <body>
@@ -50,6 +54,7 @@
   <div class="sbox">
     <input id="q" type="search" placeholder="Word type করো (English বা বাংলা)..." autocomplete="off" autocapitalize="off" spellcheck="false" autofocus>
     <div id="status" class="status" style="display:none"></div>
+    <div id="pager" class="pager"><button id="prev" class="pgbtn" aria-label="Previous page">&#8249;</button><span id="pg" class="pgnum"></span><button id="next" class="pgbtn" aria-label="Next page">&#8250;</button></div>
   </div>
   <div id="add" class="add">
     <input id="newMeaning" placeholder="বাংলা মানে (optional)">
@@ -99,109 +104,167 @@ great|মহৎ|1|গ্রেট
 Question|প্রশ্ন|1|কোয়েশ্চন
 where|কোথায়|1|হোয়ার
 Word|শব্দ|1|ওয়ার্ড
-Yesterday|গতকাল|2|ইয়েস্টারডে
-Only|শুধুমাত্র|2|ওনলি
-Submit|জমা দেওয়া|2|সাবমিট
-Out|বাইরে|2|আউট
-Fuel|জ্বালানি|2|ফুয়েল
-Again|আবার|2|অ্যাগেইন
-Indicate|নির্দেশ করা|2|ইন্ডিকেট
-Specific|নির্দিষ্ট|2|স্পেসিফিক
-Wild|বন্য|2|ওয়াইল্ড
-Ship|জাহাজ|2|শিপ
-Thing|জিনিস|2|থিং
-Shoe|জুতা|2|শু
-Blank|খালি|2|ব্ল্যাংক
-Common|সাধারণ|2|কমন
-Yard|বাগান|2|ইয়ার্ড
-Below|নিচে|2|বিলো
-visit|পরিদর্শন করা|2|ভিজিট
-Bought|কিনেছিল|2|বট
-Chase|ধাওয়া করা|2|চেজ
-Jumble|মিশানো|2|জাম্বল
-Correct|সঠিক|2|কারেক্ট
-Collective|সমষ্টিগত|2|কালেক্টিভ
-Museum|জাদুঘর|2|মিউজিয়াম
-Brought|নিয়ে এসেছিল|2|ব্রট
-Rearrange|পুনর্বিন্যাস করা|2|রিঅ্যারেঞ্জ
-Rain|বৃষ্টি|2|রেইন
-Meaningful|অর্থপূর্ণ|2|মিনিংফুল
-Outside|বাইরে|2|আউটসাইড
-Watch|দেখা|2|ওয়াচ
-Dinner|রাতের খাবার|2|ডিনার
-Always|সবসময়|2|অলওয়েজ
-Excited|উত্তেজিত|2|এক্সাইটেড
-Exercise|ব্যায়াম|2|এক্সারসাইজ
-Mountain|পাহাড়|2|মাউন্টেন
-Imagine|কল্পনা করা|2|ইমাজিন
-Describing|বর্ণনা করা|2|ডিসক্রাইবিং
-green|সবুজ|2|গ্রিন
-grazing|ঘাস খাওয়া|2|গ্রেজিং
-why|কেন|3|হোয়াই
-Who|কে|3|হু
-They|তারা|3|দে
-Use|ব্যবহার|3|ইউজ
-Now|এখন|3|নাউ
-when|কখন|3|হোয়েন
-Some|কিছু|3|সাম
-Little|ছোট|3|লিটল
-Every|প্রতি|3|এভরি
-Each|প্রত্যেক|3|ইচ
-Ready|প্রস্তুত|3|রেডি
-Test|পরীক্ষা|3|টেস্ট
-Study|পড়া|3|স্টাডি
-Clap|তালি|3|ক্ল্যাপ
-Lovely|সুন্দর|3|লাভলি
-Garden|বাগান|3|গার্ডেন
-Front|আঙিনা|3|ফ্রন্ট
-Play|খেলা|3|প্লে
-ground|ভূমি|3|গ্রাউন্ড
-Fence|ঘেরা/বেড়া|3|ফেন্স
-Enclose|আবদ্ধ|3|ইনক্লোজ
-Many|অনেক|3|ম্যানি
-Beautiful|সুন্দর|3|বিউটিফুল
-add|যুক্ত করা|3|অ্যাড
-Compost|জৈব সার|3|কম্পোস্ট
-Corner|কোনা|3|কর্নার
-Ditch|নালা|3|ডিচ
-Dance|নাচ|3|ড্যান্স
-Flock|ঝাঁক|3|ফ্লক
-Swarm|ঝাঁক|3|স্বর্ম
-Flower|ফুল|3|ফ্লাওয়ার
-Butterflies|প্রজাপতি|3|বাটারফ্লাইজ
-Group|দল|3|গ্রুপ
-Frog|ব্যাঙ|3|ফ্রগ
-Live|বাস করা|3|লিভ
-Sweet|মিষ্টি|3|সুইট
-Nearby|নিকটবর্তী|3|নিয়ারবাই
-Sometimes|মাঝে মাঝে|3|সামটাইমস
-Take|নেওয়া|3|টেক
-care|যত্ন|3|কেয়ার
-Select|বাছাই করা|3|সিলেক্ট
-Regular|নিয়মিত|3|রেগুলার
-weed|আগাছা|3|উইড
-Soil|মাটি|3|সয়েল
-Given|দেওয়া আছে|3|গিভেন
-Fertile|উর্বর|3|ফার্টাইল
-Type|প্রকার|3|টাইপ
-Category|বিভাগ|3|ক্যাটাগরি
-done|শেষ|3|ডান
-Example|উদাহরণ|3|ইগজ্যাম্পল
-Text|লেখা|3|টেক্সট
-Match|মেলানো|3|ম্যাচ
-With|সাথে|3|উইথ
-General|সাধারণ|3|জেনারেল
-Object|বস্তু|3|অবজেক্ট
-Refer|উল্লেখ করা|3|রেফার
-Place|জায়গা|3|প্লেস
-Item|জিনিস|3|আইটেম`;
+why|কেন|2|হোয়াই
+Who|কে|2|হু
+They|তারা|2|দে
+Use|ব্যবহার|2|ইউজ
+Now|এখন|2|নাউ
+when|কখন|2|হোয়েন
+Some|কিছু|2|সাম
+Little|ছোট|2|লিটল
+Every|প্রতি|2|এভরি
+Each|প্রত্যেক|2|ইচ
+Ready|প্রস্তুত|2|রেডি
+Test|পরীক্ষা|2|টেস্ট
+Study|পড়া|2|স্টাডি
+Clap|তালি|2|ক্ল্যাপ
+Lovely|সুন্দর|2|লাভলি
+Garden|বাগান|2|গার্ডেন
+Front|আঙিনা|2|ফ্রন্ট
+Play|খেলা|2|প্লে
+ground|ভূমি|2|গ্রাউন্ড
+Fence|ঘেরা/বেড়া|2|ফেন্স
+Enclose|আবদ্ধ|2|ইনক্লোজ
+Many|অনেক|2|ম্যানি
+Beautiful|সুন্দর|2|বিউটিফুল
+add|যুক্ত করা|2|অ্যাড
+Compost|জৈব সার|2|কম্পোস্ট
+Corner|কোনা|2|কর্নার
+Ditch|নালা|2|ডিচ
+Dance|নাচ|2|ড্যান্স
+Flock|ঝাঁক|2|ফ্লক
+Swarm|ঝাঁক|2|স্বর্ম
+Flower|ফুল|2|ফ্লাওয়ার
+Butterflies|প্রজাপতি|2|বাটারফ্লাইজ
+Group|দল|2|গ্রুপ
+Frog|ব্যাঙ|2|ফ্রগ
+Live|বাস করা|2|লিভ
+Sweet|মিষ্টি|2|সুইট
+Nearby|নিকটবর্তী|2|নিয়ারবাই
+Sometimes|মাঝে মাঝে|2|সামটাইমস
+Take|নেওয়া|2|টেক
+care|যত্ন|2|কেয়ার
+Select|বাছাই করা|2|সিলেক্ট
+Regular|নিয়মিত|2|রেগুলার
+weed|আগাছা|2|উইড
+Soil|মাটি|2|সয়েল
+Given|দেওয়া আছে|2|গিভেন
+Fertile|উর্বর|2|ফার্টাইল
+Type|প্রকার|2|টাইপ
+Category|বিভাগ|2|ক্যাটাগরি
+done|শেষ|2|ডান
+Example|উদাহরণ|2|ইগজ্যাম্পল
+Text|লেখা|2|টেক্সট
+Match|মেলানো|2|ম্যাচ
+With|সাথে|2|উইথ
+General|সাধারণ|2|জেনারেল
+Object|বস্তু|2|অবজেক্ট
+Refer|উল্লেখ করা|2|রেফার
+Place|জায়গা|2|প্লেস
+Item|জিনিস|2|আইটেম
+Yesterday|গতকাল|3|ইয়েস্টারডে
+Only|শুধুমাত্র|3|ওনলি
+Submit|জমা দেওয়া|3|সাবমিট
+Out|বাইরে|3|আউট
+Fuel|জ্বালানি|3|ফুয়েল
+Again|আবার|3|অ্যাগেইন
+Indicate|নির্দেশ করা|3|ইন্ডিকেট
+Specific|নির্দিষ্ট|3|স্পেসিফিক
+Wild|বন্য|3|ওয়াইল্ড
+Ship|জাহাজ|3|শিপ
+Thing|জিনিস|3|থিং
+Shoe|জুতা|3|শু
+Blank|খালি|3|ব্ল্যাংক
+Common|সাধারণ|3|কমন
+Yard|বাগান|3|ইয়ার্ড
+Below|নিচে|3|বিলো
+visit|পরিদর্শন করা|3|ভিজিট
+Bought|কিনেছিল|3|বট
+Chase|ধাওয়া করা|3|চেজ
+Jumble|মিশানো|3|জাম্বল
+Correct|সঠিক|3|কারেক্ট
+Collective|সমষ্টিগত|3|কালেক্টিভ
+Museum|জাদুঘর|3|মিউজিয়াম
+Brought|নিয়ে এসেছিল|3|ব্রট
+Rearrange|পুনর্বিন্যাস করা|3|রিঅ্যারেঞ্জ
+Rain|বৃষ্টি|3|রেইন
+Meaningful|অর্থপূর্ণ|3|মিনিংফুল
+Outside|বাইরে|3|আউটসাইড
+Watch|দেখা|3|ওয়াচ
+Dinner|রাতের খাবার|3|ডিনার
+Always|সবসময়|3|অলওয়েজ
+Excited|উত্তেজিত|3|এক্সাইটেড
+Exercise|ব্যায়াম|3|এক্সারসাইজ
+Mountain|পাহাড়|3|মাউন্টেন
+Imagine|কল্পনা করা|3|ইমাজিন
+Describing|বর্ণনা করা|3|ডিসক্রাইবিং
+green|সবুজ|3|গ্রিন
+grazing|ঘাস খাওয়া|3|গ্রেজিং
+Sleep|ঘুম|3|স্লিপ
+Mean|অর্থ / মানে|3|মিন
+Loud|জোরে|3|লাউড
+Didn't|না|3|ডিডন্ট
+Give|দেওয়া|3|গিভ
+Speak|কথা বলা|3|স্পিক
+Quiet|শান্ত|3|কোয়াইয়েট
+Noisy|কোলাহল|3|নয়জি
+Next|পরবর্তী|3|নেক্সট
+Low|নিম্ন / কম|3|লো
+Voice|কণ্ঠ|3|ভয়েস
+Thirsty|তৃষ্ণার্ত|3|থার্স্টি
+Return|ফিরে আসা|3|রিটার্ন
+Leave|ত্যাগ করা|3|লিভ
+Slowly|ধীরে ধীরে|3|স্লোলি
+Thanks|ধন্যবাদ|3|থ্যাংকস
+Prefer|উল্লেখ করা|3|প্রিফার
+Dark|অন্ধকার|3|ডার্ক
+Not that far|ওতো দূরে নয়|3|নট দ্যাট ফার
+Okay|ঠিক আছে|3|ওকে
+Turn on|চালু করা|4|টার্ন অন
+Light|আলো|4|লাইট
+Board|বোর্ড|4|বোর্ড
+Remember|মনে রাখা|4|রিমেম্বার
+Dirty|ময়লা|4|ডার্টি
+Found|পাওয়া গেছে|4|ফাউন্ড
+Follow|অনুরোধ করা|4|ফলো
+Opposite|বিপরীত|4|অপোজিট
+Warn|সতর্ক করা|4|ওয়ার্ন
+Strong|শক্তিশালী|4|স্ট্রং
+Antonyms|বিপরীত শব্দ|4|অ্যান্টোনিমস
+Healthy|স্বাস্থ্যকর|4|হেলদি
+Stop|থামা|4|স্টপ
+Write|লেখা|4|রাইট
+Quickly|দ্রুত|4|কুইকলি
+Language|ভাষা|4|ল্যাঙ্গুয়েজ
+Focus|আলোকপাত|4|ফোকাস
+Imperative|(বাক্যের) প্রকার ভেদ|4|ইম্পেরেটিভ
+These|এগুলো|4|দিজ
+Instruction|নির্দেশনা|4|ইনস্ট্রাকশন
+Statement|বিবৃতি|4|স্টেটমেন্ট
+Touch|স্পর্শ করা|4|টাচ
+Make|তৈরি করা|4|মেক
+Express|প্রকাশ করা|4|এক্সপ্রেস
+Usually|সচরাচর|4|ইউজুয়ালি
+Start|শুরু করা|4|স্টার্ট
+Don't|করো না|4|ডোন্ট
+Request|অনুরোধ করা|4|রিকোয়েস্ট
+Carry|বহন করা|4|ক্যারি
+Carefully|যত্ন সহকারে|4|কেয়ারফুলি
+Wash|ধোয়া|4|ওয়াশ
+Silent|চুপ|4|সাইলেন্ট
+Someone|কেউ একজন|4|সামওয়ান
+Cricket|(খেলার নাম)|4|ক্রিকেট
+Brother|ভাই|4|ব্রাদার`;
 
 const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
 let words = BASE.split("\n").map(l=>{const [w,m,p,u]=l.split("|");return {w:cap(w),m,p:"Page "+p,u}});
-try{ const extra = JSON.parse(localStorage.getItem("extraWords")||"[]").map(x=>({...x,w:cap(x.w)})); words = words.concat(extra); }catch(e){}
+try{ const extra = JSON.parse(localStorage.getItem("extraWords")||"[]").map(x=>({...x,w:cap(x.w),p:words[words.length-1].p})); words = words.concat(extra); }catch(e){}
 words.forEach((x,i)=>x.n=i+1);
 
 const $ = id => document.getElementById(id);
+let page=1;
+const order=()=>[...new Set(words.map(x=>x.p))];
+const pages=()=>order().length;
 const norm = s => s.toLowerCase().trim().replace(/\s+/g," ");
 const esc = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
@@ -229,9 +292,13 @@ function search(){
   const raw=$("q").value, q=norm(raw);
   const res=$("results"), st=$("status"), add=$("add");
   add.style.display="none";
+  $("pager").style.display=q?"none":"flex";
   if(!q){
+    page=Math.min(page,pages());
+    $("pg").textContent="Page "+page+" / "+pages();
+    $("prev").disabled=page<=1; $("next").disabled=page>=pages();
     st.style.display="none";
-    res.innerHTML=words.map(x=>
+    res.innerHTML=words.filter(x=>x.p===order()[page-1]).map(x=>
       `<div class="item"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
     return;
@@ -276,7 +343,7 @@ function search(){
 
 $("addBtn").onclick=()=>{
   const w=$("q").value.trim(); if(!w) return;
-  const item={w:cap(w),m:$("newMeaning").value.trim(),p:"New"};
+  const item={w:cap(w),m:$("newMeaning").value.trim(),p:words[words.length-1].p};
   item.n=words.length+1;
   words.push(item);
   try{
@@ -286,6 +353,8 @@ $("addBtn").onclick=()=>{
   $("newMeaning").value=""; $("count").textContent="("+words.length+" words)"; search();
 };
 
+$("prev").onclick=()=>{if(page>1){page--;search();window.scrollTo(0,0)}};
+$("next").onclick=()=>{if(page<pages()){page++;search();window.scrollTo(0,0)}};
 $("q").addEventListener("input",search);
 $("count").textContent="("+words.length+" words)";
 search();
