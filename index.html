@@ -47,6 +47,10 @@
   .pgbtn:disabled{opacity:.35;cursor:default}
   .pgnum{font-weight:600;font-size:1rem;text-align:center;display:flex;flex-direction:column;line-height:1.25}
   .pgnum small{font-weight:400;color:var(--mut);font-size:.78rem}
+  .item{cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .item:active{background:var(--bd)}
+  .item.say{border-color:var(--ac)}
+  .spk{font-size:.8rem;margin-left:6px;opacity:.55}
 </style>
 </head>
 <body>
@@ -301,7 +305,7 @@ function search(){
     $("prev").disabled=page<=1; $("next").disabled=page>=pages();
     st.style.display="none";
     res.innerHTML=cur.map(x=>
-      `<div class="item"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+      `<div class="item" data-w="${esc(x.w)}"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span><span class="spk">🔊</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
     return;
   }
@@ -339,7 +343,7 @@ function search(){
   if(!exact && /^[a-z' -]+$/i.test(raw.trim())) add.style.display="flex";
 
   res.innerHTML=scored.slice(0,40).map(x=>
-    `<div class="item ${x.tag==="exact"?"exact":""}"><div><span class="sn">${x.n}.</span><span class="w">${hl(x.w,q)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}<span class="tag">${x.tag}</span></div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
+    `<div class="item ${x.tag==="exact"?"exact":""}" data-w="${esc(x.w)}"><div><span class="sn">${x.n}.</span><span class="w">${hl(x.w,q)}</span><span class="spk">🔊</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}<span class="tag">${x.tag}</span></div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
   ).join("");
 }
 
@@ -355,26 +359,87 @@ $("addBtn").onclick=()=>{
   $("newMeaning").value=""; $("count").textContent="("+words.length+" words)"; search();
 };
 
-let _ac;
+let _ac,_bus;
 function flip(dir){
   try{
-    _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(!_ac){
+      _ac=new (window.AudioContext||window.webkitAudioContext)();
+      // warm bus: soft low-pass + gentle echo for a roomy, calm feel
+      const lp=_ac.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2600;
+      const dl=_ac.createDelay(); dl.delayTime.value=0.16;
+      const fb=_ac.createGain(); fb.gain.value=0.28;
+      const wet=_ac.createGain(); wet.gain.value=0.35;
+      lp.connect(_ac.destination); lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(_ac.destination);
+      _bus=lp;
+    }
     if(_ac.state==="suspended")_ac.resume();
-    const t=_ac.currentTime;
-    // soft, round "pop" tone: next = slightly higher, previous = slightly lower
-    const base=dir>0?660:520;
-    [[base,0.5],[base*2,0.12]].forEach(([fr,vol])=>{
-      const o=_ac.createOscillator(), g=_ac.createGain();
-      o.type="sine";
-      o.frequency.setValueAtTime(fr*1.12,t);
-      o.frequency.exponentialRampToValueAtTime(fr,t+0.07);
-      g.gain.setValueAtTime(0.0001,t);
-      g.gain.exponentialRampToValueAtTime(vol*0.22,t+0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001,t+0.2);
-      o.connect(g); g.connect(_ac.destination); o.start(t); o.stop(t+0.22);
+    const t0=_ac.currentTime;
+    // soft kalimba-like two-note chime: next rises, previous falls
+    const notes=dir>0?[587.33,880.00]:[880.00,587.33];
+    notes.forEach((f,i)=>{
+      const t=t0+i*0.1;
+      [[1,0.16,0.9],[2,0.035,0.35],[3.01,0.012,0.18]].forEach(([m,v,d])=>{
+        const o=_ac.createOscillator(), g=_ac.createGain();
+        o.type="sine"; o.frequency.value=f*m;
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.exponentialRampToValueAtTime(v,t+0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+        o.connect(g); g.connect(_bus); o.start(t); o.stop(t+d+0.05);
+      });
     });
   }catch(e){}
 }
+const ss=window.speechSynthesis||null;
+let curAudio=null; const audioCache=new Map();
+
+function stopAll(){
+  try{ if(ss) ss.cancel(); }catch(e){}
+  if(curAudio){try{curAudio.pause()}catch(e){} curAudio=null;}
+}
+function ttsSpeak(word,el,voiceURI){
+  if(!ss){ if(el) el.classList.remove("say"); return; }
+  const u=new SpeechSynthesisUtterance(word);
+  u.lang="en-US"; u.rate=0.85;
+  const all=ss.getVoices();
+  const v=(voiceURI&&all.find(x=>x.voiceURI===voiceURI))||all.find(x=>/^en[-_]US/i.test(x.lang))||all.find(x=>/^en/i.test(x.lang));
+  if(v) u.voice=v;
+  u.onend=u.onerror=()=>{if(el)el.classList.remove("say")};
+  ss.speak(u);
+}
+async function humanUrl(word){
+  const k=word.toLowerCase();
+  if(audioCache.has(k)) return audioCache.get(k);
+  let url=null;
+  try{
+    if(/^[a-z']+$/i.test(k)){
+      const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(k));
+      if(r.ok){
+        const j=await r.json(), au=[];
+        j.forEach(e=>(e.phonetics||[]).forEach(p=>{if(p.audio) au.push(p.audio)}));
+        url=au.find(a=>/-us\./i.test(a))||au.find(a=>/-uk\./i.test(a))||au[0]||null;
+        if(url&&url.startsWith("//")) url="https:"+url;
+      }
+    }
+  }catch(e){}
+  audioCache.set(k,url); return url;
+}
+async function speak(word,el){
+  stopAll();
+  if(el) el.classList.add("say");
+  const url=await humanUrl(word);
+  if(url){
+    try{
+      const a=new Audio(url); curAudio=a;
+      a.onended=()=>{if(el)el.classList.remove("say")};
+      a.onerror=()=>{ttsSpeak(word,el)};
+      await a.play(); return;
+    }catch(e){}
+  }
+  ttsSpeak(word,el);
+}
+$("results").addEventListener("click",e=>{
+  const it=e.target.closest(".item"); if(it&&it.dataset.w) speak(it.dataset.w,it);
+});
 $("prev").onclick=()=>{if(page>1){page--;flip(-1);search();window.scrollTo(0,0)}};
 $("next").onclick=()=>{if(page<pages()){page++;flip(1);search();window.scrollTo(0,0)}};
 $("q").addEventListener("input",search);
