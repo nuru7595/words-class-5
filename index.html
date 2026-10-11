@@ -304,6 +304,7 @@ function search(){
     $("pg").innerHTML="Page "+page+" / "+pages()+"<small>"+cur.length+" words</small>";
     $("prev").disabled=page<=1; $("next").disabled=page>=pages();
     st.style.display="none";
+    setTimeout(()=>prefetch(cur.map(x=>x.w)),0);
     res.innerHTML=cur.map(x=>
       `<div class="item" data-w="${esc(x.w)}"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span><span class="spk">🔊</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
@@ -360,76 +361,118 @@ $("addBtn").onclick=()=>{
 };
 
 let _ac,_bus;
+function ensureAudio(){
+  if(_ac) return _ac;
+  _ac=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});
+  const lp=_ac.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2600;
+  const dl=_ac.createDelay(); dl.delayTime.value=0.16;
+  const fb=_ac.createGain(); fb.gain.value=0.28;
+  const wet=_ac.createGain(); wet.gain.value=0.35;
+  lp.connect(_ac.destination); lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(_ac.destination);
+  _bus=lp; return _ac;
+}
+// create + unlock the audio engine on the very first touch, so later taps are instant
+["pointerdown","touchstart","keydown"].forEach(ev=>document.addEventListener(ev,()=>{
+  try{ ensureAudio(); if(_ac.state!=="running") _ac.resume(); }catch(e){}
+},{once:true,passive:true}));
+
 function flip(dir){
   try{
-    if(!_ac){
-      _ac=new (window.AudioContext||window.webkitAudioContext)();
-      // warm bus: soft low-pass + gentle echo for a roomy, calm feel
-      const lp=_ac.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=2600;
-      const dl=_ac.createDelay(); dl.delayTime.value=0.16;
-      const fb=_ac.createGain(); fb.gain.value=0.28;
-      const wet=_ac.createGain(); wet.gain.value=0.35;
-      lp.connect(_ac.destination); lp.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(_ac.destination);
-      _bus=lp;
-    }
-    if(_ac.state==="suspended")_ac.resume();
-    const t0=_ac.currentTime;
-    // soft kalimba-like two-note chime: next rises, previous falls
-    const notes=dir>0?[587.33,880.00]:[880.00,587.33];
-    notes.forEach((f,i)=>{
-      const t=t0+i*0.1;
-      [[1,0.16,0.9],[2,0.035,0.35],[3.01,0.012,0.18]].forEach(([m,v,d])=>{
-        const o=_ac.createOscillator(), g=_ac.createGain();
-        o.type="sine"; o.frequency.value=f*m;
-        g.gain.setValueAtTime(0.0001,t);
-        g.gain.exponentialRampToValueAtTime(v,t+0.008);
-        g.gain.exponentialRampToValueAtTime(0.0001,t+d);
-        o.connect(g); g.connect(_bus); o.start(t); o.stop(t+d+0.05);
+    ensureAudio();
+    const play=()=>{
+      const t0=_ac.currentTime+0.005;
+      const notes=dir>0?[587.33,880.00]:[880.00,587.33];
+      notes.forEach((f,i)=>{
+        const t=t0+i*0.1;
+        [[1,0.16,0.9],[2,0.035,0.35],[3.01,0.012,0.18]].forEach(([m,v,d])=>{
+          const o=_ac.createOscillator(), g=_ac.createGain();
+          o.type="sine"; o.frequency.value=f*m;
+          g.gain.setValueAtTime(0.0001,t);
+          g.gain.exponentialRampToValueAtTime(v,t+0.008);
+          g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+          o.connect(g); g.connect(_bus); o.start(t); o.stop(t+d+0.05);
+        });
       });
-    });
+    };
+    if(_ac.state==="running") play();
+    else _ac.resume().then(play).catch(()=>{});
   }catch(e){}
 }
 const ss=window.speechSynthesis||null;
-let curAudio=null; const audioCache=new Map();
-
+let curAudio=null;
+const audioCache=new Map(), audioEls=new Map(), pending=new Map();
+try{ Object.entries(JSON.parse(localStorage.getItem("audioUrls")||"{}")).forEach(([k,v])=>audioCache.set(k,v)); }catch(e){}
+function saveUrls(){
+  try{ const o={}; audioCache.forEach((v,k)=>{if(v)o[k]=v}); localStorage.setItem("audioUrls",JSON.stringify(o)); }catch(e){}
+}
 function stopAll(){
   try{ if(ss) ss.cancel(); }catch(e){}
   if(curAudio){try{curAudio.pause()}catch(e){} curAudio=null;}
 }
-function ttsSpeak(word,el,voiceURI){
+function ttsSpeak(word,el){
   if(!ss){ if(el) el.classList.remove("say"); return; }
   const u=new SpeechSynthesisUtterance(word);
   u.lang="en-US"; u.rate=0.85;
   const all=ss.getVoices();
-  const v=(voiceURI&&all.find(x=>x.voiceURI===voiceURI))||all.find(x=>/^en[-_]US/i.test(x.lang))||all.find(x=>/^en/i.test(x.lang));
+  const v=all.find(x=>/^en[-_]US/i.test(x.lang))||all.find(x=>/^en/i.test(x.lang));
   if(v) u.voice=v;
   u.onend=u.onerror=()=>{if(el)el.classList.remove("say")};
   ss.speak(u);
 }
-async function humanUrl(word){
+function humanUrl(word){
   const k=word.toLowerCase();
-  if(audioCache.has(k)) return audioCache.get(k);
-  let url=null;
-  try{
-    if(/^[a-z']+$/i.test(k)){
-      const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(k));
-      if(r.ok){
-        const j=await r.json(), au=[];
-        j.forEach(e=>(e.phonetics||[]).forEach(p=>{if(p.audio) au.push(p.audio)}));
-        url=au.find(a=>/-us\./i.test(a))||au.find(a=>/-uk\./i.test(a))||au[0]||null;
-        if(url&&url.startsWith("//")) url="https:"+url;
-      }
+  if(audioCache.has(k)) return Promise.resolve(audioCache.get(k));
+  if(pending.has(k)) return pending.get(k);
+  const p=(async()=>{
+    let url=null, ok=false;
+    try{
+      if(/^[a-z']+$/i.test(k)){
+        const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),5000);
+        const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(k),{signal:ctl.signal});
+        clearTimeout(to);
+        if(r.ok){
+          const j=await r.json(), au=[];
+          j.forEach(e=>(e.phonetics||[]).forEach(p=>{if(p.audio) au.push(p.audio)}));
+          url=au.find(a=>/-us\./i.test(a))||au.find(a=>/-uk\./i.test(a))||au[0]||null;
+          if(url&&url.startsWith("//")) url="https:"+url;
+          ok=true;
+        } else if(r.status===404) ok=true; // no recording exists for this word
+      } else ok=true;
+    }catch(e){}
+    if(ok){ audioCache.set(k,url); if(url) saveUrls(); }
+    pending.delete(k);
+    return url;
+  })();
+  pending.set(k,p); return p;
+}
+function preload(k,url){
+  if(!url||audioEls.has(k)) return;
+  try{ const a=new Audio(); a.preload="auto"; a.src=url; a.load(); audioEls.set(k,a); }catch(e){}
+}
+// warm up the words on screen in the background so taps play instantly
+let prefetchTok=0;
+async function prefetch(list){
+  const tok=++prefetchTok, q=list.filter(w=>/^[a-z']+$/i.test(w)); let i=0;
+  const worker=async()=>{
+    while(i<q.length && tok===prefetchTok){
+      const w=q[i++], k=w.toLowerCase();
+      const url=await humanUrl(w); preload(k,url);
     }
-  }catch(e){}
-  audioCache.set(k,url); return url;
+  };
+  await Promise.all([worker(),worker(),worker()]);
 }
 async function speak(word,el){
   stopAll();
   if(el) el.classList.add("say");
-  const url=await humanUrl(word);
+  const k=word.toLowerCase();
+  let url=audioCache.get(k);
+  // not ready yet: wait only briefly, then fall back to the device voice so tapping never feels stuck
+  if(url===undefined) url=await Promise.race([humanUrl(word),new Promise(r=>setTimeout(()=>r(null),600))]);
   if(url){
     try{
-      const a=new Audio(url); curAudio=a;
+      preload(k,url);
+      const a=audioEls.get(k)||new Audio(url); curAudio=a;
+      a.currentTime=0;
       a.onended=()=>{if(el)el.classList.remove("say")};
       a.onerror=()=>{ttsSpeak(word,el)};
       await a.play(); return;
