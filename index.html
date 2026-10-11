@@ -304,7 +304,6 @@ function search(){
     $("pg").innerHTML="Page "+page+" / "+pages()+"<small>"+cur.length+" words</small>";
     $("prev").disabled=page<=1; $("next").disabled=page>=pages();
     st.style.display="none";
-    setTimeout(()=>prefetch(cur.map(x=>x.w)),0);
     res.innerHTML=cur.map(x=>
       `<div class="item" data-w="${esc(x.w)}"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span><span class="spk">🔊</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
@@ -400,11 +399,7 @@ function flip(dir){
 }
 const ss=window.speechSynthesis||null;
 let curAudio=null;
-const audioCache=new Map(), audioEls=new Map(), pending=new Map();
-try{ Object.entries(JSON.parse(localStorage.getItem("audioUrls")||"{}")).forEach(([k,v])=>audioCache.set(k,v)); }catch(e){}
-function saveUrls(){
-  try{ const o={}; audioCache.forEach((v,k)=>{if(v)o[k]=v}); localStorage.setItem("audioUrls",JSON.stringify(o)); }catch(e){}
-}
+const audioEls=new Map();
 function stopAll(){
   try{ if(ss) ss.cancel(); }catch(e){}
   if(curAudio){try{curAudio.pause()}catch(e){} curAudio=null;}
@@ -419,66 +414,31 @@ function ttsSpeak(word,el){
   u.onend=u.onerror=()=>{if(el)el.classList.remove("say")};
   ss.speak(u);
 }
-function humanUrl(word){
-  const k=word.toLowerCase();
-  if(audioCache.has(k)) return Promise.resolve(audioCache.get(k));
-  if(pending.has(k)) return pending.get(k);
-  const p=(async()=>{
-    let url=null, ok=false;
-    try{
-      if(/^[a-z']+$/i.test(k)){
-        const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),5000);
-        const r=await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(k),{signal:ctl.signal});
-        clearTimeout(to);
-        if(r.ok){
-          const j=await r.json(), au=[];
-          j.forEach(e=>(e.phonetics||[]).forEach(p=>{if(p.audio) au.push(p.audio)}));
-          url=au.find(a=>/-us\./i.test(a))||au.find(a=>/-uk\./i.test(a))||au[0]||null;
-          if(url&&url.startsWith("//")) url="https:"+url;
-          ok=true;
-        } else if(r.status===404) ok=true; // no recording exists for this word
-      } else ok=true;
-    }catch(e){}
-    if(ok){ audioCache.set(k,url); if(url) saveUrls(); }
-    pending.delete(k);
-    return url;
-  })();
-  pending.set(k,p); return p;
-}
-function preload(k,url){
-  if(!url||audioEls.has(k)) return;
-  try{ const a=new Audio(); a.preload="auto"; a.src=url; a.load(); audioEls.set(k,a); }catch(e){}
-}
-// warm up the words on screen in the background so taps play instantly
-let prefetchTok=0;
-async function prefetch(list){
-  const tok=++prefetchTok, q=list.filter(w=>/^[a-z']+$/i.test(w)); let i=0;
-  const worker=async()=>{
-    while(i<q.length && tok===prefetchTok){
-      const w=q[i++], k=w.toLowerCase();
-      const url=await humanUrl(w); preload(k,url);
-    }
-  };
-  await Promise.all([worker(),worker(),worker()]);
-}
-async function speak(word,el){
+// Plays a clear English voice by streaming it straight into an <audio> element
+// (no fetch, so no CORS problem). If it can't start quickly, the device voice takes over.
+function speak(word,el){
   stopAll();
   if(el) el.classList.add("say");
   const k=word.toLowerCase();
-  let url=audioCache.get(k);
-  // not ready yet: wait only briefly, then fall back to the device voice so tapping never feels stuck
-  if(url===undefined) url=await Promise.race([humanUrl(word),new Promise(r=>setTimeout(()=>r(null),600))]);
-  if(url){
-    try{
-      preload(k,url);
-      const a=audioEls.get(k)||new Audio(url); curAudio=a;
-      a.currentTime=0;
-      a.onended=()=>{if(el)el.classList.remove("say")};
-      a.onerror=()=>{ttsSpeak(word,el)};
-      await a.play(); return;
-    }catch(e){}
+  let a=audioEls.get(k);
+  if(!a){
+    a=new Audio("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q="+encodeURIComponent(word));
+    a.preload="auto"; audioEls.set(k,a);
   }
-  ttsSpeak(word,el);
+  curAudio=a;
+  let started=false, fell=false;
+  const fallback=()=>{
+    if(started||fell) return; fell=true;
+    try{a.pause()}catch(e){}
+    audioEls.delete(k);
+    ttsSpeak(word,el);
+  };
+  const timer=setTimeout(fallback,2500);
+  a.onplaying=()=>{started=true; clearTimeout(timer);};
+  a.onended=()=>{if(el)el.classList.remove("say")};
+  a.onerror=()=>{clearTimeout(timer); fallback();};
+  try{ a.currentTime=0; }catch(e){}
+  const p=a.play(); if(p&&p.catch) p.catch(()=>{clearTimeout(timer); fallback();});
 }
 $("results").addEventListener("click",e=>{
   const it=e.target.closest(".item"); if(it&&it.dataset.w) speak(it.dataset.w,it);
