@@ -45,7 +45,8 @@
   .pager{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px}
   .pgbtn{width:56px;height:44px;font-size:1.6rem;line-height:1;padding:0}
   .pgbtn:disabled{opacity:.35;cursor:default}
-  .pgnum{font-weight:600;font-size:1rem}
+  .pgnum{font-weight:600;font-size:1rem;text-align:center;display:flex;flex-direction:column;line-height:1.25}
+  .pgnum small{font-weight:400;color:var(--mut);font-size:.78rem}
 </style>
 </head>
 <body>
@@ -262,9 +263,9 @@ try{ const extra = JSON.parse(localStorage.getItem("extraWords")||"[]").map(x=>(
 words.forEach((x,i)=>x.n=i+1);
 
 const $ = id => document.getElementById(id);
-let page=1;
 const order=()=>[...new Set(words.map(x=>x.p))];
 const pages=()=>order().length;
+let page=pages();
 const norm = s => s.toLowerCase().trim().replace(/\s+/g," ");
 const esc = s => s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
@@ -295,10 +296,11 @@ function search(){
   $("pager").style.display=q?"none":"flex";
   if(!q){
     page=Math.min(page,pages());
-    $("pg").textContent="Page "+page+" / "+pages();
+    const cur=words.filter(x=>x.p===order()[page-1]);
+    $("pg").innerHTML="Page "+page+" / "+pages()+"<small>"+cur.length+" words</small>";
     $("prev").disabled=page<=1; $("next").disabled=page>=pages();
     st.style.display="none";
-    res.innerHTML=words.filter(x=>x.p===order()[page-1]).map(x=>
+    res.innerHTML=cur.map(x=>
       `<div class="item"><div><span class="sn">${x.n}.</span><span class="w">${esc(x.w)}</span>${x.u?` <span class="pr">(${esc(x.u)})</span>`:""}</div><div class="m">${esc(x.m||"")}<br><small>${x.p}</small></div></div>`
     ).join("");
     return;
